@@ -73,6 +73,33 @@ footer button{flex:1; padding:13px 0; border:none; border-radius:10px; font-size
 .notice{margin:10px 14px 90px; font-size:12px; color:var(--sub); line-height:1.6}
 .toast{position:fixed; left:50%; bottom:80px; transform:translateX(-50%); background:#333; color:#fff; padding:9px 16px; border-radius:20px; font-size:13px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:50}
 .toast.show{opacity:1}
+
+#tabs{display:flex; gap:6px; margin-top:9px}
+.tab{flex:1; display:flex; flex-direction:column; align-items:center; gap:1px; padding:8px 2px;
+  border:1.5px solid var(--line); background:var(--card); border-radius:10px;
+  font-family:inherit; font-size:14px; font-weight:bold; color:var(--sub); cursor:pointer; line-height:1.25}
+.tab.on{border-color:var(--accent); background:var(--accent-soft); color:var(--accent)}
+.tab .tc{font-size:11px; font-weight:normal; color:var(--sub); font-variant-numeric:tabular-nums}
+.tab.on .tc{color:var(--accent)}
+.tab .tc.full{color:var(--ok); font-weight:bold}
+.pane{display:none}
+.pane.on{display:block}
+.vendor.bare{margin-top:10px}
+
+.tally-row{display:grid; grid-template-columns:1fr 1.25fr 46px; gap:6px}
+.tally-row input{flex:none}
+.tally-add{flex:none; font-size:20px; line-height:1}
+.chip{padding:4px 6px 4px 10px; gap:3px}
+.chip .cd{font-size:11px; font-weight:normal; color:#4338ca; background:#fff; border-radius:9px; padding:1px 6px}
+.chip.nodate{background:#f3f4f6; border-color:#d1d5db}
+.chip.nodate .cd{color:var(--sub)}
+.chip.oldest{background:#fef3c7; border-color:#fcd34d}
+.chip.oldest .cd{color:#b45309}
+.chip.sum .cd{display:none}
+.fefo{margin-top:6px; font-size:12.5px; color:var(--sub); background:#f3f4f6; border-radius:8px; padding:7px 10px; line-height:1.5}
+.fefo b{color:var(--txt)}
+.fefo.warn{background:var(--warn-soft); color:#92400e}
+.fefo.warn b{color:#b45309}
 </style>
 </head>
 <body>
@@ -80,6 +107,7 @@ footer button{flex:1; padding:13px 0; border:none; border-radius:10px; font-size
   <h1>청라로지스 실재고 실사</h1>
   <div class="meta">발주처 대선 · 총 <span id="totalCnt"></span>품목 · 입력 <span id="doneCnt">0</span>건 · 기준 2026-08-06 실재고현황</div>
   <div class="progress"><div id="bar"></div></div>
+  <div id="tabs"></div>
 </header>
 <div class="search" style="display:flex; gap:8px">
   <input id="who" type="text" placeholder="실사자 이름" style="flex:0 0 110px; padding:11px 12px; border:1.5px solid #e8c96a; background:#fffbea; border-radius:10px; font-size:15px">
@@ -88,9 +116,11 @@ footer button{flex:1; padding:13px 0; border:none; border-radius:10px; font-size
 <div id="list"></div>
 <div class="notice">
 ※ <b>품목을 탭하면 입력창이 펼쳐집니다</b> (다른 품목은 자동으로 접힘). 입력이 끝난 품목은 줄 오른쪽에 ✓와 수량이 표시됩니다.<br>
-※ 노란 칸 = 실사 수량 입력 (실사PLT·낱BOX, 선작업 9종은 4단/3단/2단 추가).<br>
-※ <b>동원·위닝·원웨이브</b>는 파렛트가 여러 곳에 흩어져 있으므로 <b>볼 때마다 PLT 수를 넣고 ＋추가</b> — 자동으로 합산됩니다. 잘못 넣으면 칩의 ✕로 삭제.<br>
-※ 빨간 <b>8/6 미확인</b> 태그 = 8/3 시트엔 있었으나 8/6 시트에서 확인 안 된 품목. 창고에 있으면 세고, 없으면 건너뛰세요.<br>
+※ <b>상단 탭</b>으로 동원 · 위닝 · 원웨이브 · 나머지를 오갑니다. 탭마다 입력 진척(예 3/7)이 표시됩니다.<br>
+※ 노란 칸 = 실사 수량 입력 (실사PLT·낱BOX). 선작업은 <b>동원 음료 4종 = 4단/2단/1단</b>, <b>원웨이브 1400 5종 = 4단/3단/2단</b>으로 나뉘어 있고 끝에 낱개(낱BOX) 칸이 있습니다.<br>
+※ <b>동원·위닝·원웨이브</b>는 파렛트가 흩어져 있으므로 <b>볼 때마다 PLT 수 + 소비기한을 넣고 ＋</b> — 자동 합산됩니다. 잘못 넣으면 칩의 ✕로 삭제.<br>
+※ <b>소비기한</b>은 숫자만 치면 됩니다 — <b>1120 → 11월 20일</b>, 해가 넘어가면 <b>251120</b>. 가장 오래된 파렛트는 <b>노란 칩</b>으로 표시되고, 한 품목에 날짜가 2종 이상이면 아래에 경고가 뜹니다. 날짜를 모르면 비워두고 추가해도 됩니다.<br>
+※ 빨간 <b>창고 미확인</b> 태그 = ERP 목록엔 있으나 창고에서 실물을 본 적 없는 품목(각 거래처 맨 아래로 모아둠). 보이면 세고, 없으면 건너뛰세요.<br>
 ※ 회색 칸 = 적재 조사: <b>1단 박스수 × 적재 단수</b>를 넣으면 PLT적재수가 자동 산출되어 계산에 반영됩니다. 기존 적재수와 다르면 조사값이 우선.<br>
 ※ 조사가 끝나면 <b>엑셀 저장</b> — 전체 품목이 업체별로 정리된 .xlsx 파일이 만들어집니다.<br>
 ⚠ 입력값은 새로고침하면 사라집니다. 끝나면 반드시 엑셀 저장 또는 결과 복사를 하세요.
@@ -124,13 +154,13 @@ var o=((a=s[17])==null?void 0:a[0])?Ob(e,e[_b(s[17][0].data)][0]):[];var l=vb(s[
 var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.s.r;c<=n.e.r;++c){i=Ta(c);for(f=n.s.c;f<=n.e.c;++f){r=s[f]+i;t=l?(e[c]||[])[f]:e[r];a="";if(t===undefined)continue;else if(t.F!=null){r=t.F;if(!t.f)continue;a=t.f;if(r.indexOf(":")==-1)r=r+":"+r}if(t.f!=null)a=t.f;else if(t.t=="z")continue;else if(t.t=="n"&&t.v!=null)a=""+t.v;else if(t.t=="b")a=t.v?"TRUE":"FALSE";else if(t.w!==undefined)a="'"+t.w;else if(t.v===undefined)continue;else if(t.t=="s")a="'"+t.v;else a=""+t.v;o[o.length]=r+"="+a}}return o}function xw(e,r,t){var a=t||{};var n=+!a.skipHeader;var i=e||{};var s=0,f=0;if(i&&a.origin!=null){if(typeof a.origin=="number")s=a.origin;else{var o=typeof a.origin=="string"?Oa(a.origin):a.origin;s=o.r;f=o.c}}var l;var c={s:{c:0,r:0},e:{c:f,r:s+r.length-1+n}};if(i["!ref"]){var h=Da(i["!ref"]);c.e.c=Math.max(c.e.c,h.e.c);c.e.r=Math.max(c.e.r,h.e.r);if(s==-1){s=h.e.r+1;c.e.r=s+r.length-1+n}}else{if(s==-1){s=0;c.e.r=r.length-1+n}}var u=a.header||[],d=0;r.forEach(function(e,r){rr(e).forEach(function(t){if((d=u.indexOf(t))==-1)u[d=u.length]=t;var o=e[t];var c="z";var h="";var v=Ra({c:f+d,r:s+r+n});l=Rw(i,v);if(o&&typeof o==="object"&&!(o instanceof Date)){i[v]=o}else{if(typeof o=="number")c="n";else if(typeof o=="boolean")c="b";else if(typeof o=="string")c="s";else if(o instanceof Date){c="d";if(!a.cellDates){c="n";o=fr(o)}h=a.dateNF||X[14]}else if(o===null&&a.nullError){c="e";o=0}if(!l)i[v]=l={t:c,v:o};else{l.t=c;l.v=o;delete l.w;delete l.R;if(h)l.z=h}if(h)l.z=h}})});c.e.c=Math.max(c.e.c,f+u.length-1);var v=Ta(s);if(n)for(d=0;d<u.length;++d)i[ya(d+f)+v]={t:"s",v:u[d]};i["!ref"]=Na(c);return i}function Ow(e,r){return xw(null,e,r)}function Rw(e,r,t){if(typeof r=="string"){if(Array.isArray(e)){var a=Oa(r);if(!e[a.r])e[a.r]=[];return e[a.r][a.c]||(e[a.r][a.c]={t:"z"})}return e[r]||(e[r]={t:"z"})}if(typeof r!="number")return Rw(e,Ra(r));return Rw(e,Ra({r:r,c:t||0}))}function Iw(e,r){if(typeof r=="number"){if(r>=0&&e.SheetNames.length>r)return r;throw new Error("Cannot find sheet # "+r)}else if(typeof r=="string"){var t=e.SheetNames.indexOf(r);if(t>-1)return t;throw new Error("Cannot find sheet name |"+r+"|")}else throw new Error("Cannot find sheet |"+r+"|")}function Nw(){return{SheetNames:[],Sheets:{}}}function Dw(e,r,t,a){var n=1;if(!t)for(;n<=65535;++n,t=undefined)if(e.SheetNames.indexOf(t="Sheet"+n)==-1)break;if(!t||e.SheetNames.length>=65535)throw new Error("Too many worksheets");if(a&&e.SheetNames.indexOf(t)>=0){var i=t.match(/(^.*?)(\d+)$/);n=i&&+i[2]||0;var s=i&&i[1]||t;for(++n;n<=65535;++n)if(e.SheetNames.indexOf(t=s+n)==-1)break}Jp(t);if(e.SheetNames.indexOf(t)>=0)throw new Error("Worksheet with name |"+t+"| already exists!");e.SheetNames.push(t);e.Sheets[t]=r;return t}function Fw(e,r,t){if(!e.Workbook)e.Workbook={};if(!e.Workbook.Sheets)e.Workbook.Sheets=[];var a=Iw(e,r);if(!e.Workbook.Sheets[a])e.Workbook.Sheets[a]={};switch(t){case 0:;case 1:;case 2:break;default:throw new Error("Bad sheet visibility setting "+t);}e.Workbook.Sheets[a].Hidden=t}function Pw(e,r){e.z=r;return e}function Lw(e,r,t){if(!r){delete e.l}else{e.l={Target:r};if(t)e.l.Tooltip=t}return e}function Mw(e,r,t){return Lw(e,"#"+r,t)}function Uw(e,r,t){if(!e.c)e.c=[];e.c.push({t:r,a:t||"SheetJS"})}function Bw(e,r,t,a){var n=typeof r!="string"?r:Da(r);var i=typeof r=="string"?r:Na(r);for(var s=n.s.r;s<=n.e.r;++s)for(var f=n.s.c;f<=n.e.c;++f){var o=Rw(e,s,f);o.t="n";o.F=i;delete o.v;if(s==n.s.r&&f==n.s.c){o.f=t;if(a)o.D=true}}return e}var Ww={encode_col:ya,encode_row:Ta,encode_cell:Ra,encode_range:Na,decode_col:Ca,decode_row:ka,split_cell:xa,decode_cell:Oa,decode_range:Ia,format_cell:Pa,sheet_add_aoa:Ma,sheet_add_json:xw,sheet_add_dom:Gm,aoa_to_sheet:Ua,json_to_sheet:Ow,table_to_sheet:jm,table_to_book:Xm,sheet_to_csv:yw,sheet_to_txt:Sw,sheet_to_json:Aw,sheet_to_html:Vm,sheet_to_formulae:_w,sheet_to_row_object_array:Aw,sheet_get_cell:Rw,book_new:Nw,book_append_sheet:Dw,book_set_sheet_visibility:Fw,cell_set_number_format:Pw,cell_set_hyperlink:Lw,cell_set_internal_link:Mw,cell_add_comment:Uw,sheet_set_array_formula:Bw,consts:{SHEET_VISIBLE:0,SHEET_HIDDEN:1,SHEET_VERY_HIDDEN:2}};var Hw;function zw(e){Hw=e}function Vw(e,r){var t=Hw();var a=r==null?{}:r;if(e==null||e["!ref"]==null){t.push(null);return t}var n=Da(e["!ref"]);var i=a.FS!==undefined?a.FS:",",s=i.charCodeAt(0);var f=a.RS!==undefined?a.RS:"\n",o=f.charCodeAt(0);var l=new RegExp((i=="|"?"\\|":i)+"+$");var c="",h=[];a.dense=Array.isArray(e);var u=a.skipHidden&&e["!cols"]||[];var d=a.skipHidden&&e["!rows"]||[];for(var v=n.s.c;v<=n.e.c;++v)if(!(u[v]||{}).hidden)h[v]=ya(v);var p=n.s.r;var g=false,m=0;t._read=function(){if(!g){g=true;return t.push("\ufeff")}while(p<=n.e.r){++p;if((d[p-1]||{}).hidden)continue;c=Cw(e,n,p-1,h,s,o,i,a);if(c!=null){if(a.strip)c=c.replace(l,"");if(c||a.blankrows!==false)return t.push((m++?f:"")+c)}}return t.push(null)};return t}function Gw(e,r){var t=Hw();var a=r||{};var n=a.header!=null?a.header:Bm;var i=a.footer!=null?a.footer:Wm;t.push(n);var s=Ia(e["!ref"]);a.dense=Array.isArray(e);t.push(zm(e,s,a));var f=s.s.r;var o=false;t._read=function(){if(f>s.e.r){if(!o){o=true;t.push("</table>"+i)}return t.push(null)}while(f<=s.e.r){t.push(Um(e,s,f,a));++f;break}};return t}function jw(e,r){var t=Hw({objectMode:true});if(e==null||e["!ref"]==null){t.push(null);return t}var a={t:"n",v:0},n=0,i=1,s=[],f=0,o="";var l={s:{r:0,c:0},e:{r:0,c:0}};var c=r||{};var h=c.range!=null?c.range:e["!ref"];if(c.header===1)n=1;else if(c.header==="A")n=2;else if(Array.isArray(c.header))n=3;switch(typeof h){case"string":l=Da(h);break;case"number":l=Da(e["!ref"]);l.s.r=h;break;default:l=h;}if(n>0)i=0;var u=Ta(l.s.r);var d=[];var v=0;var p=Array.isArray(e);var g=l.s.r,m=0;var b={};if(p&&!e[g])e[g]=[];var w=c.skipHidden&&e["!cols"]||[];var k=c.skipHidden&&e["!rows"]||[];for(m=l.s.c;m<=l.e.c;++m){if((w[m]||{}).hidden)continue;d[m]=ya(m);a=p?e[g][m]:e[d[m]+u];switch(n){case 1:s[m]=m-l.s.c;break;case 2:s[m]=d[m];break;case 3:s[m]=c.header[m-l.s.c];break;default:if(a==null)a={w:"__EMPTY",t:"s"};o=f=Pa(a,null,c);v=b[f]||0;if(!v)b[f]=1;else{do{o=f+"_"+v++}while(b[o]);b[f]=v;b[o]=1}s[m]=o;}}g=l.s.r+i;t._read=function(){while(g<=l.e.r){if((k[g-1]||{}).hidden)continue;var r=Tw(e,l,g,d,n,s,p,c);++g;if(r.isempty===false||(n===1?c.blankrows!==false:!!c.blankrows)){t.push(r.row);return}}return t.push(null)};return t}var Xw={to_json:jw,to_html:Gw,to_csv:Vw,set_readable:zw};if(typeof vm!=="undefined")e.parse_xlscfb=vm;e.parse_zip=Xb;e.read=iw;e.readFile=sw;e.readFileSync=sw;e.write=gw;e.writeFile=bw;e.writeFileSync=bw;e.writeFileAsync=kw;e.utils=Ww;e.writeXLSX=pw;e.writeFileXLSX=ww;e.SSF=Ve;if(typeof Xw!=="undefined")e.stream=Xw;if(typeof Ke!=="undefined")e.CFB=Ke;if(typeof require!=="undefined"){var $w=undefined;if(($w||{}).Readable)zw($w.Readable)}}if(typeof exports!=="undefined")make_xlsx_lib(exports);else if(typeof module!=="undefined"&&module.exports)make_xlsx_lib(module.exports);else if(typeof define==="function"&&define.amd)define("xlsx",function(){if(!XLSX.version)make_xlsx_lib(XLSX);return XLSX});else make_xlsx_lib(XLSX);if(typeof window!=="undefined"&&!window.XLSX)try{window.XLSX=XLSX}catch(e){}
 </script>
 <script>
-const ITEMS = [{"id": 0, "vendor": "동원", "name": "테이크얼라이브-쿨망고(제로)500ml", "plt": 64, "staged": true, "slay": [2, 1], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 1, "vendor": "동원", "name": "테이크얼라이브-쿨스위티자몽(제로)500ml", "plt": 64, "staged": true, "slay": [2, 1], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 2, "vendor": "동원", "name": "덴마크드링킹-레몬500ml", "plt": 64, "staged": true, "slay": [4, 3, 2], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 3, "vendor": "동원", "name": "덴마크드링킹-자몽청포도500ml", "plt": 64, "staged": true, "slay": [4, 3, 2], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 4, "vendor": "동원", "name": "요아정-리치500ml", "plt": 78, "staged": false, "slay": [], "tally": true, "bpl0": 13, "lay0": 6, "unconf": false}, {"id": 5, "vendor": "동원", "name": "요아정-피치500ml", "plt": 78, "staged": false, "slay": [], "tally": true, "bpl0": 13, "lay0": 6, "unconf": false}, {"id": 6, "vendor": "동원", "name": "카멜마일드라떼(450ml*24)", "plt": 80, "staged": false, "slay": [], "tally": true, "bpl0": null, "lay0": null, "unconf": false}, {"id": 7, "vendor": "원웨이브", "name": "1400라떼500ml", "plt": 64, "staged": true, "slay": [4, 3, 2], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 8, "vendor": "원웨이브", "name": "1400블랙커피500ml", "plt": 64, "staged": true, "slay": [4, 3, 2], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 9, "vendor": "원웨이브", "name": "1400바닐라라떼500ml", "plt": 64, "staged": true, "slay": [4, 3, 2], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 10, "vendor": "원웨이브", "name": "1400커피디카페인블랙500ml", "plt": 64, "staged": true, "slay": [4, 3, 2], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 11, "vendor": "원웨이브", "name": "1400헤이즐넛블랙커피500ml", "plt": 64, "staged": true, "slay": [4, 3, 2], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 12, "vendor": "원웨이브", "name": "1200납작복숭아아이스티500ml", "plt": 54, "staged": false, "slay": [], "tally": true, "bpl0": 9, "lay0": 6, "unconf": false}, {"id": 13, "vendor": "원웨이브", "name": "1200레몬아이스티500ml", "plt": 54, "staged": false, "slay": [], "tally": true, "bpl0": 9, "lay0": 6, "unconf": false}, {"id": 14, "vendor": "원웨이브", "name": "1200샤인머스캣 아이스티500ml", "plt": 54, "staged": false, "slay": [], "tally": true, "bpl0": 9, "lay0": 6, "unconf": false}, {"id": 15, "vendor": "원웨이브", "name": "알파CD레몬 500ML", "plt": 48, "staged": false, "slay": [], "tally": true, "bpl0": null, "lay0": null, "unconf": false}, {"id": 16, "vendor": "원웨이브", "name": "매일한끼스윗콘(3*10)", "plt": 84, "staged": false, "slay": [], "tally": true, "bpl0": null, "lay0": null, "unconf": false}, {"id": 17, "vendor": "원웨이브", "name": "유미의세포들 세포깡70g", "plt": 42, "staged": false, "slay": [], "tally": true, "bpl0": null, "lay0": null, "unconf": false}, {"id": 18, "vendor": "위닝", "name": "공차-피치우롱티500ml", "plt": 63, "staged": false, "slay": [], "tally": true, "bpl0": 9, "lay0": 7, "unconf": false}, {"id": 19, "vendor": "위닝", "name": "공차-레몬자스민티500ml", "plt": 63, "staged": false, "slay": [], "tally": true, "bpl0": 9, "lay0": 7, "unconf": false}, {"id": 20, "vendor": "위닝", "name": "페를레디솔레-레몬스파클링500ml", "plt": 48, "staged": false, "slay": [], "tally": true, "bpl0": 8, "lay0": 6, "unconf": false}, {"id": 21, "vendor": "위닝", "name": "페를레디솔레-블루베리스파클링500ml", "plt": 48, "staged": false, "slay": [], "tally": true, "bpl0": 8, "lay0": 6, "unconf": false}, {"id": 22, "vendor": "위닝", "name": "페를레디솔레 레몬캔디150G", "plt": 117, "staged": false, "slay": [], "tally": true, "bpl0": 13, "lay0": 9, "unconf": false}, {"id": 23, "vendor": "위닝", "name": "프라임-블루라즈베리500ml", "plt": 56, "staged": false, "slay": [], "tally": true, "bpl0": 8, "lay0": 7, "unconf": false}, {"id": 24, "vendor": "위닝", "name": "프라임-스트로베리워터멜론500ml", "plt": 56, "staged": false, "slay": [], "tally": true, "bpl0": 8, "lay0": 7, "unconf": false}, {"id": 25, "vendor": "위닝", "name": "프라임-키위베리향(MLB한정판)500ml", "plt": 56, "staged": false, "slay": [], "tally": true, "bpl0": 8, "lay0": 7, "unconf": false}, {"id": 26, "vendor": "위닝", "name": "프라임 하이드레이션 아이스팝(12입)", "plt": 60, "staged": false, "slay": [], "tally": true, "bpl0": null, "lay0": null, "unconf": false}, {"id": 27, "vendor": "에스엠이지", "name": "대만여주차590ml", "plt": 48, "staged": false, "slay": [], "tally": false, "bpl0": 8, "lay0": 6, "unconf": false}, {"id": 28, "vendor": "에스엠이지", "name": "브레드노래나오는캔디12G", "plt": 32, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 29, "vendor": "에스엠이지", "name": "메이플스토리 노래나오는캔디12g", "plt": 32, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 30, "vendor": "에스엠이지", "name": "씨케이 스트롱브렌드500g", "plt": 160, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 31, "vendor": "에스엠이지", "name": "어라운지 브라운 너티500g(10입)", "plt": 60, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 32, "vendor": "에스엠이지", "name": "터키힐메이플크림쿠키200g", "plt": 60, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 33, "vendor": "에스엠이지", "name": "유니콘 폼 마쉬멜로42g", "plt": 114, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 34, "vendor": "에스엠이지", "name": "스위티 하트 마쉬멜로45g", "plt": 114, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 35, "vendor": "에스엠이지", "name": "비이)킨더카드2p", "plt": 384, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 36, "vendor": "에스엠이지", "name": "리퀴드데스-마운틴스파클링워터355ml", "plt": 100, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}, {"id": 37, "vendor": "에스엠이지", "name": "리퀴드데스-세버드라임스파클링워터355ml", "plt": 100, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}, {"id": 38, "vendor": "에스엠이지", "name": "리퀴드데스-루트비어향스파클링워터355ml", "plt": 100, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}, {"id": 39, "vendor": "에스엠이지", "name": "리퀴드데스-킬러콜라향스파클링워터355ml", "plt": 100, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}, {"id": 40, "vendor": "영풍", "name": "요뽀끼 치즈컵떡볶이120g", "plt": 48, "staged": false, "slay": [], "tally": false, "bpl0": 8, "lay0": 6, "unconf": false}, {"id": 41, "vendor": "영풍", "name": "요뽀끼 짜장컵떡볶이120g", "plt": 48, "staged": false, "slay": [], "tally": false, "bpl0": 8, "lay0": 6, "unconf": false}, {"id": 42, "vendor": "영풍", "name": "요뽀끼 매콤달콤컵떡볶이140g", "plt": 48, "staged": false, "slay": [], "tally": false, "bpl0": 8, "lay0": 6, "unconf": false}, {"id": 43, "vendor": "셀피알", "name": "방수밴드", "plt": 40, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 44, "vendor": "셀피알", "name": "방수우의(블랙)", "plt": 30, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 45, "vendor": "셀피알", "name": "개뻬로(닭고기&치즈껌)", "plt": 54, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 46, "vendor": "셀피알", "name": "초박형 콘돔", "plt": 32, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}, {"id": 47, "vendor": "셀피알", "name": "개뻬로(오리고기&치즈껌)", "plt": null, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}, {"id": 48, "vendor": "한울", "name": "소담미고구마바23g*10", "plt": 30, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 49, "vendor": "한울", "name": "소담미단호박바23g*10", "plt": 30, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 50, "vendor": "한울", "name": "촉촉한꿀고구마말랭이60g", "plt": 48, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 51, "vendor": "한울", "name": "(Yellow)쫀득한고구마스틱60g", "plt": 100, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 52, "vendor": "한울", "name": "이집트골든데이츠", "plt": 40, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 53, "vendor": "에프투에스", "name": "크리켓라이터미니(10*50)", "plt": 48, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 54, "vendor": "에프투에스", "name": "크리켓라이터퓨전(10g*50)", "plt": 48, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 55, "vendor": "칠갑", "name": "매운맛해물수제비", "plt": 42, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 56, "vendor": "예스미미", "name": "라면조리기 미미네 매콤라볶이290g", "plt": 30, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 57, "vendor": "성지", "name": "황금가 찹쌀누룽지700g", "plt": 48, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 58, "vendor": "에스앤제이", "name": "군옥수수", "plt": null, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}, {"id": 59, "vendor": "에스앤제이", "name": "노랑옥수수", "plt": null, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}, {"id": 60, "vendor": "에스앤제이", "name": "순수고구마(노랑)130g", "plt": null, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}];
+const ITEMS = [{"id": 0, "vendor": "동원", "name": "테이크얼라이브-쿨망고(제로)500ml", "plt": 64, "staged": true, "slay": [4, 2, 1], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 1, "vendor": "동원", "name": "테이크얼라이브-쿨스위티자몽(제로)500ml", "plt": 64, "staged": true, "slay": [4, 2, 1], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 2, "vendor": "동원", "name": "덴마크드링킹-레몬500ml", "plt": 64, "staged": true, "slay": [4, 2, 1], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 3, "vendor": "동원", "name": "덴마크드링킹-자몽청포도500ml", "plt": 64, "staged": true, "slay": [4, 2, 1], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 4, "vendor": "동원", "name": "요아정-리치500ml", "plt": 78, "staged": false, "slay": [], "tally": true, "bpl0": 13, "lay0": 6, "unconf": false}, {"id": 5, "vendor": "동원", "name": "요아정-피치500ml", "plt": 78, "staged": false, "slay": [], "tally": true, "bpl0": 13, "lay0": 6, "unconf": false}, {"id": 6, "vendor": "동원", "name": "카멜마일드라떼(450ml*24)", "plt": 80, "staged": false, "slay": [], "tally": true, "bpl0": null, "lay0": null, "unconf": true}, {"id": 7, "vendor": "원웨이브", "name": "1400라떼500ml", "plt": 64, "staged": true, "slay": [4, 3, 2], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 8, "vendor": "원웨이브", "name": "1400블랙커피500ml", "plt": 64, "staged": true, "slay": [4, 3, 2], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 9, "vendor": "원웨이브", "name": "1400바닐라라떼500ml", "plt": 64, "staged": true, "slay": [4, 3, 2], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 10, "vendor": "원웨이브", "name": "1400커피디카페인블랙500ml", "plt": 64, "staged": true, "slay": [4, 3, 2], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 11, "vendor": "원웨이브", "name": "1400헤이즐넛블랙커피500ml", "plt": 64, "staged": true, "slay": [4, 3, 2], "tally": true, "bpl0": 8, "lay0": 8, "unconf": false}, {"id": 12, "vendor": "원웨이브", "name": "1200납작복숭아아이스티500ml", "plt": 54, "staged": false, "slay": [], "tally": true, "bpl0": 9, "lay0": 6, "unconf": false}, {"id": 13, "vendor": "원웨이브", "name": "1200레몬아이스티500ml", "plt": 54, "staged": false, "slay": [], "tally": true, "bpl0": 9, "lay0": 6, "unconf": false}, {"id": 14, "vendor": "원웨이브", "name": "1200샤인머스캣 아이스티500ml", "plt": 54, "staged": false, "slay": [], "tally": true, "bpl0": 9, "lay0": 6, "unconf": false}, {"id": 15, "vendor": "원웨이브", "name": "알파CD레몬 500ML", "plt": 48, "staged": false, "slay": [], "tally": true, "bpl0": null, "lay0": null, "unconf": false}, {"id": 16, "vendor": "원웨이브", "name": "매일한끼스윗콘(3*10)", "plt": 84, "staged": false, "slay": [], "tally": true, "bpl0": null, "lay0": null, "unconf": false}, {"id": 17, "vendor": "원웨이브", "name": "유미의세포들 세포깡70g", "plt": 42, "staged": false, "slay": [], "tally": true, "bpl0": null, "lay0": null, "unconf": false}, {"id": 18, "vendor": "위닝", "name": "공차-피치우롱티500ml", "plt": 63, "staged": false, "slay": [], "tally": true, "bpl0": 9, "lay0": 7, "unconf": false}, {"id": 19, "vendor": "위닝", "name": "공차-레몬자스민티500ml", "plt": 63, "staged": false, "slay": [], "tally": true, "bpl0": 9, "lay0": 7, "unconf": false}, {"id": 20, "vendor": "위닝", "name": "페를레디솔레-레몬스파클링500ml", "plt": 48, "staged": false, "slay": [], "tally": true, "bpl0": 8, "lay0": 6, "unconf": false}, {"id": 21, "vendor": "위닝", "name": "페를레디솔레-블루베리스파클링500ml", "plt": 48, "staged": false, "slay": [], "tally": true, "bpl0": 8, "lay0": 6, "unconf": false}, {"id": 22, "vendor": "위닝", "name": "페를레디솔레 레몬캔디150G", "plt": 117, "staged": false, "slay": [], "tally": true, "bpl0": 13, "lay0": 9, "unconf": false}, {"id": 23, "vendor": "위닝", "name": "프라임-블루라즈베리500ml", "plt": 56, "staged": false, "slay": [], "tally": true, "bpl0": 8, "lay0": 7, "unconf": false}, {"id": 24, "vendor": "위닝", "name": "프라임-스트로베리워터멜론500ml", "plt": 56, "staged": false, "slay": [], "tally": true, "bpl0": 8, "lay0": 7, "unconf": false}, {"id": 25, "vendor": "위닝", "name": "프라임-키위베리향(MLB한정판)500ml", "plt": 56, "staged": false, "slay": [], "tally": true, "bpl0": 8, "lay0": 7, "unconf": false}, {"id": 26, "vendor": "위닝", "name": "프라임 하이드레이션 아이스팝(12입)", "plt": 60, "staged": false, "slay": [], "tally": true, "bpl0": null, "lay0": null, "unconf": false}, {"id": 27, "vendor": "에스엠이지", "name": "대만여주차590ml", "plt": 48, "staged": false, "slay": [], "tally": false, "bpl0": 8, "lay0": 6, "unconf": false}, {"id": 28, "vendor": "에스엠이지", "name": "브레드노래나오는캔디12G", "plt": 32, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 29, "vendor": "에스엠이지", "name": "메이플스토리 노래나오는캔디12g", "plt": 32, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 30, "vendor": "에스엠이지", "name": "씨케이 스트롱브렌드500g", "plt": 160, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 31, "vendor": "에스엠이지", "name": "어라운지 브라운 너티500g(10입)", "plt": 60, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 32, "vendor": "에스엠이지", "name": "터키힐메이플크림쿠키200g", "plt": 60, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 33, "vendor": "에스엠이지", "name": "유니콘 폼 마쉬멜로42g", "plt": 114, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 34, "vendor": "에스엠이지", "name": "스위티 하트 마쉬멜로45g", "plt": 114, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 35, "vendor": "에스엠이지", "name": "비이)킨더카드2p", "plt": 384, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 36, "vendor": "에스엠이지", "name": "리퀴드데스-마운틴스파클링워터355ml", "plt": 100, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}, {"id": 37, "vendor": "에스엠이지", "name": "리퀴드데스-세버드라임스파클링워터355ml", "plt": 100, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}, {"id": 38, "vendor": "에스엠이지", "name": "리퀴드데스-루트비어향스파클링워터355ml", "plt": 100, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}, {"id": 39, "vendor": "에스엠이지", "name": "리퀴드데스-킬러콜라향스파클링워터355ml", "plt": 100, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}, {"id": 40, "vendor": "영풍", "name": "요뽀끼 치즈컵떡볶이120g", "plt": 48, "staged": false, "slay": [], "tally": false, "bpl0": 8, "lay0": 6, "unconf": false}, {"id": 41, "vendor": "영풍", "name": "요뽀끼 짜장컵떡볶이120g", "plt": 48, "staged": false, "slay": [], "tally": false, "bpl0": 8, "lay0": 6, "unconf": false}, {"id": 42, "vendor": "영풍", "name": "요뽀끼 매콤달콤컵떡볶이140g", "plt": 48, "staged": false, "slay": [], "tally": false, "bpl0": 8, "lay0": 6, "unconf": false}, {"id": 43, "vendor": "셀피알", "name": "방수밴드", "plt": 40, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 44, "vendor": "셀피알", "name": "방수우의(블랙)", "plt": 30, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 45, "vendor": "셀피알", "name": "개뻬로(닭고기&치즈껌)", "plt": 54, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 47, "vendor": "셀피알", "name": "개뻬로(오리고기&치즈껌)", "plt": null, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 46, "vendor": "셀피알", "name": "초박형 콘돔", "plt": 32, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}, {"id": 48, "vendor": "한울", "name": "소담미고구마바23g*10", "plt": 30, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 49, "vendor": "한울", "name": "소담미단호박바23g*10", "plt": 30, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 50, "vendor": "한울", "name": "촉촉한꿀고구마말랭이60g", "plt": 48, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 51, "vendor": "한울", "name": "(Yellow)쫀득한고구마스틱60g", "plt": 100, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 52, "vendor": "한울", "name": "이집트골든데이츠", "plt": 40, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 53, "vendor": "에프투에스", "name": "크리켓라이터미니(10*50)", "plt": 48, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 54, "vendor": "에프투에스", "name": "크리켓라이터퓨전(10g*50)", "plt": 48, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 55, "vendor": "칠갑", "name": "매운맛해물수제비", "plt": 42, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 56, "vendor": "예스미미", "name": "라면조리기 미미네 매콤라볶이290g", "plt": 30, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 57, "vendor": "성지", "name": "황금가 찹쌀누룽지700g", "plt": 48, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": false}, {"id": 58, "vendor": "에스앤제이", "name": "군옥수수", "plt": null, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}, {"id": 59, "vendor": "에스앤제이", "name": "노랑옥수수", "plt": null, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}, {"id": 60, "vendor": "에스앤제이", "name": "순수고구마(노랑)130g", "plt": null, "staged": false, "slay": [], "tally": false, "bpl0": null, "lay0": null, "unconf": true}];
 const ORDER = ["동원", "원웨이브", "위닝", "에스엠이지", "영풍", "셀피알", "한울", "에프투에스", "칠갑", "예스미미", "성지", "에스앤제이"];
 const state = {};
 ITEMS.forEach(it => state[it.id] = {
   bpl: it.bpl0,     // 1단 박스수 (확정 품목은 기본값 채움)
   layers: it.lay0,  // 적재 단수
-  plts: it.tally ? [] : null,   // 누적 입력 업체: 볼 때마다 PLT 추가
+  plts: it.tally ? [] : null,   // 누적 입력: {n:PLT수, d:소비기한} 배열
   sPLT:null, nb1:null, d4:null, d3:null, d2:null, d1:null, nb2:null
 });
 
@@ -147,7 +177,38 @@ function effPlt(id){
 
 function sPltOf(id){
   const s = state[id];
-  return s.plts ? s.plts.reduce((a,b)=>a+b,0) : nz(s.sPLT);
+  return s.plts ? s.plts.reduce((a,b)=>a+b.n,0) : nz(s.sPLT);
+}
+
+// ── 소비기한 ────────────────────────────────────────────────
+// 1120 / 11-20 / 251120 / 20251120 모두 인식. 연도 생략 시 "가까운 미래"로 추정.
+function parseExp(raw){
+  const s = String(raw||'').replace(/[^0-9]/g,'');
+  let y, m, d;
+  if(s.length===4){ m=+s.slice(0,2); d=+s.slice(2,4); }
+  else if(s.length===6){ y=2000+ +s.slice(0,2); m=+s.slice(2,4); d=+s.slice(4,6); }
+  else if(s.length===8){ y=+s.slice(0,4); m=+s.slice(4,6); d=+s.slice(6,8); }
+  else return null;
+  if(m<1||m>12||d<1||d>31) return null;
+  if(y===undefined){
+    const now = new Date(); y = now.getFullYear();
+    const diff = (new Date(y,m-1,d) - now)/86400000;
+    if(diff < -45) y += 1;
+    else if(diff > 400) y -= 1;
+  }
+  return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+}
+const expShort = iso => iso ? iso.slice(2).replace(/-/g,'.') : '';
+// 품목의 소비기한 요약: 최고령·종류수
+function expInfo(id){
+  const s = state[id];
+  if(!s.plts || !s.plts.length) return null;
+  const dated = s.plts.filter(p=>p.d);
+  if(!dated.length) return null;
+  const kinds = [...new Set(dated.map(p=>p.d))].sort();
+  const oldest = kinds[0];
+  const oldQty = dated.filter(p=>p.d===oldest).reduce((a,b)=>a+b.n,0);
+  return {oldest, oldQty, kinds, undated: s.plts.length - dated.length};
 }
 
 function calc(id){
@@ -175,10 +236,11 @@ function cardHTML(it){
   let f;
   if(it.tally){
     f = `<div class="field" style="grid-column:1/-1">
-      <label>실사 PLT (만재) — 산재 적치, 보이는 대로 추가</label>
+      <label>실사 PLT (만재) — 파렛트 볼 때마다 수량 + 소비기한 추가</label>
       <div class="tally-row">
         <input type="number" inputmode="numeric" min="0" id="tin${it.id}" placeholder="PLT 수">
-        <button type="button" class="tally-add" data-tid="${it.id}">＋ 추가</button>
+        <input type="text" inputmode="numeric" id="tdt${it.id}" placeholder="소비기한 1120">
+        <button type="button" class="tally-add" data-tid="${it.id}">＋</button>
       </div>
       <div class="tally-chips" id="chips${it.id}"></div>
     </div>` + fieldHTML(it.id,'nb1','낱BOX (정PLT)');
@@ -194,7 +256,7 @@ function cardHTML(it){
   f += fieldHTML(it.id,'bpl','1단 박스수', true, state[it.id].bpl) + fieldHTML(it.id,'layers','적재 단수', true, state[it.id].layers);
   const tags = `<span class="tag" id="tagPlt${it.id}">적재 ${it.plt!=null?it.plt+'박스/PLT':'미확인'}</span>`
     + (it.staged?`<span class="tag staged">선작업</span>`:'')
-    + (it.unconf?`<span class="tag" style="background:#fee2e2;color:#b91c1c">8/6 미확인</span>`:'');
+    + (it.unconf?`<span class="tag" style="background:#fee2e2;color:#b91c1c">창고 미확인</span>`:'');
   return `<div class="card" id="card${it.id}" data-name="${it.name}">
     <div class="card-head">
       <div class="left">
@@ -206,23 +268,50 @@ function cardHTML(it){
     <div class="card-body">
       <div class="inputs">${f}</div>
       <div class="result" id="res${it.id}" style="display:none"></div>
+      <div class="fefo" id="fefo${it.id}" style="display:none"></div>
     </div>
   </div>`;
 }
 
+const BIG = ['동원','위닝','원웨이브'];
+const GROUPS = [
+  {key:'dw',  label:'동원',     vendors:['동원']},
+  {key:'wn',  label:'위닝',     vendors:['위닝']},
+  {key:'ow',  label:'원웨이브', vendors:['원웨이브']},
+  {key:'etc', label:'나머지',   vendors:ORDER.filter(v=>BIG.indexOf(v)<0)}
+];
+const gItems = g => ITEMS.filter(i=>g.vendors.indexOf(i.vendor)>=0);
+let activeTab = 'dw';
+
 function render(){
-  const list = document.getElementById('list');
-  let html = '';
-  ORDER.forEach(v=>{
-    const its = ITEMS.filter(i=>i.vendor===v);
-    if(!its.length) return;
-    html += `<div class="vendor" data-vendor="${v}">
-      <div class="vendor-head" onclick="this.parentNode.classList.toggle('closed')">
-        <span>${v}</span><span class="cnt">${its.length}품목</span></div>
-      <div class="cards">${its.map(cardHTML).join('')}</div></div>`;
-  });
-  list.innerHTML = html;
+  document.getElementById('tabs').innerHTML = GROUPS.map(g=>
+    `<button type="button" class="tab${g.key===activeTab?' on':''}" data-tab="${g.key}">
+      <span>${g.label}</span><span class="tc" id="tc_${g.key}">0/${gItems(g).length}</span></button>`).join('');
+
+  document.getElementById('list').innerHTML = GROUPS.map(g=>{
+    const solo = g.vendors.length===1;
+    const inner = g.vendors.map(v=>{
+      const its = ITEMS.filter(i=>i.vendor===v);
+      if(!its.length) return '';
+      const head = solo ? '' :
+        `<div class="vendor-head" onclick="this.parentNode.classList.toggle('closed')">
+           <span>${v}</span><span class="cnt">${its.length}품목</span></div>`;
+      return `<div class="vendor${solo?' bare':''}" data-vendor="${v}">${head}
+        <div class="cards">${its.map(cardHTML).join('')}</div></div>`;
+    }).join('');
+    return `<div class="pane${g.key===activeTab?' on':''}" data-tab="${g.key}">${inner}</div>`;
+  }).join('');
 }
+
+document.getElementById('tabs').addEventListener('click', e=>{
+  const b = e.target.closest('.tab'); if(!b) return;
+  activeTab = b.dataset.tab;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on', x.dataset.tab===activeTab));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on', p.dataset.tab===activeTab));
+  document.querySelectorAll('.card.open').forEach(c=>c.classList.remove('open'));
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+
 render();
 ITEMS.filter(i=>i.tally).forEach(i=>renderChips(i.id));
 document.getElementById('totalCnt').textContent = ITEMS.length;
@@ -232,12 +321,15 @@ function renderChips(id){
   const box = document.getElementById('chips'+id);
   if(!box) return;
   if(!s.plts.length){
-    box.innerHTML = '<span class="tally-empty">아직 입력 없음 — 파렛트 무더기를 볼 때마다 수를 넣고 ＋추가</span>';
+    box.innerHTML = '<span class="tally-empty">아직 입력 없음 — 파렛트를 볼 때마다 PLT 수와 소비기한을 넣고 ＋</span>';
     return;
   }
-  const sum = s.plts.reduce((a,b)=>a+b,0);
-  box.innerHTML = s.plts.map((v,i)=>`<span class="chip">${v}<b data-tid="${id}" data-idx="${i}" title="삭제">✕</b></span>`).join('')
-    + `<span class="chip sum">합계 ${sum} PLT</span>`;
+  const info = expInfo(id);
+  box.innerHTML = s.plts.map((p,i)=>{
+    const old = info && p.d===info.oldest;
+    return `<span class="chip${p.d?'':' nodate'}${old?' oldest':''}">${p.n}<span class="cd">${p.d?expShort(p.d):'날짜?'}</span><b data-tid="${id}" data-idx="${i}" title="삭제">✕</b></span>`;
+  }).join('')
+  + `<span class="chip sum">합계 ${sPltOf(id)} PLT</span>`;
 }
 
 function updateCard(id){
@@ -267,6 +359,19 @@ function updateCard(id){
     `<div><div class="lbl">실재고</div><div class="val">${fmt(r.total)}</div></div>`+
     `<div><div class="lbl">총PLT</div><div class="val">${r.fullPLT==null?'—':fmt(r.fullPLT)}</div></div>`+
     `<div><div class="lbl">잔량BOX</div><div class="val">${fmt(r.rem)}</div></div>`;
+  const inf = expInfo(id);
+  const fe = document.getElementById('fefo'+id);
+  if(fe){
+    if(!inf){ fe.style.display='none'; }
+    else{
+      const warn = inf.kinds.length>1;
+      fe.className = 'fefo'+(warn?' warn':'');
+      fe.innerHTML = `<b>최고령 ${expShort(inf.oldest)}</b> · ${inf.oldQty}PLT`
+        + (warn?` <span>— 날짜 ${inf.kinds.length}종 섞임 (${inf.kinds.map(expShort).join(', ')})</span>`:'')
+        + (inf.undated?` <span>· 날짜 미기재 ${inf.undated}건</span>`:'');
+      fe.style.display='block';
+    }
+  }
   box.style.display='grid';
   card.classList.add('done');
   refreshProgress();
@@ -276,6 +381,11 @@ function refreshProgress(){
   const done = ITEMS.filter(i=>calc(i.id)).length;
   document.getElementById('doneCnt').textContent = done;
   document.getElementById('bar').style.width = (done/ITEMS.length*100)+'%';
+  GROUPS.forEach(g=>{
+    const its = gItems(g), d = its.filter(i=>calc(i.id)).length;
+    const el = document.getElementById('tc_'+g.key);
+    if(el){ el.textContent = d+'/'+its.length; el.classList.toggle('full', its.length>0 && d===its.length); }
+  });
 }
 
 document.getElementById('list').addEventListener('click', e=>{
@@ -283,10 +393,14 @@ document.getElementById('list').addEventListener('click', e=>{
   if(add){
     const id = Number(add.dataset.tid);
     const inp = document.getElementById('tin'+id);
+    const dEl = document.getElementById('tdt'+id);
     const v = Number(inp.value);
     if(inp.value==='' || isNaN(v) || v<=0){ toast('PLT 수를 먼저 입력하세요'); return; }
-    state[id].plts.push(v);
-    inp.value='';
+    const raw = dEl ? dEl.value.trim() : '';
+    const d = parseExp(raw);
+    if(raw && !d){ toast('소비기한을 확인하세요 (예 1120 = 11월 20일)'); dEl.focus(); return; }
+    state[id].plts.push({n:v, d:d});
+    inp.value=''; if(dEl) dEl.value='';
     renderChips(id); updateCard(id);
     inp.focus();
     return;
@@ -317,22 +431,30 @@ document.getElementById('list').addEventListener('input', e=>{
 });
 
 document.getElementById('list').addEventListener('keydown', e=>{
-  if(e.key==='Enter' && e.target.id && e.target.id.indexOf('tin')===0){
+  const tgt = e.target.id||'';
+  if(e.key==='Enter' && (tgt.indexOf('tin')===0 || tgt.indexOf('tdt')===0)){
     e.preventDefault();
-    const btn = document.querySelector(`.tally-add[data-tid="${e.target.id.slice(3)}"]`);
+    const btn = document.querySelector(`.tally-add[data-tid="${tgt.slice(3)}"]`);
     if(btn) btn.click();
   }
 });
 
 document.getElementById('q').addEventListener('input', e=>{
   const q = e.target.value.trim().toLowerCase();
+  const searching = q.length>0;
+  document.getElementById('tabs').style.display = searching ? 'none' : '';
   document.querySelectorAll('.card').forEach(c=>{
     c.style.display = c.dataset.name.toLowerCase().includes(q) ? '' : 'none';
   });
   document.querySelectorAll('.vendor').forEach(v=>{
     const any = [...v.querySelectorAll('.card')].some(c=>c.style.display!=='none');
     v.style.display = any ? '' : 'none';
-    if(q) v.classList.remove('closed');
+    if(searching) v.classList.remove('closed');
+  });
+  document.querySelectorAll('.pane').forEach(p=>{
+    if(!searching){ p.classList.toggle('on', p.dataset.tab===activeTab); return; }
+    const any = [...p.querySelectorAll('.card')].some(c=>c.style.display!=='none');
+    p.classList.toggle('on', any);
   });
 });
 
@@ -345,7 +467,8 @@ function buildRows(all){
     rows.push({v:it.vendor, n:it.name, unconf:it.unconf,
       bpl:s.bpl, layers:s.layers, eff:effPlt(it.id)||null,
       sPLT: s.plts ? (s.plts.length ? sPltOf(it.id) : null) : s.sPLT,
-      pltList: s.plts ? s.plts.slice() : null,
+      pltList: s.plts ? s.plts.map(p=>p.n+(p.d?'('+expShort(p.d)+')':'')) : null,
+      exp: expInfo(it.id),
       nb1:s.nb1, d4:s.d4, d3:s.d3, d2:s.d2, d1:s.d1, nb2:s.nb2,
       staged:it.staged, slay:it.slay,
       total:r?r.total:null, fullPLT:r?r.fullPLT:null, rem:r?r.rem:null});
@@ -370,7 +493,11 @@ document.getElementById('copyBtn').onclick = ()=>{
       txt += `\n  실재고 ${fmt(r.total)}박스`;
       if(r.fullPLT!=null) txt += ` = ${r.fullPLT}PLT + ${r.rem}박스`;
     }
-    if(r.pltList && r.pltList.length>1) txt += `\n  실사PLT ${r.pltList.join('+')} = ${r.sPLT}`;
+    if(r.pltList && r.pltList.length>1) txt += `\n  실사PLT ${r.pltList.join(' + ')} = ${r.sPLT}`;
+    if(r.exp){
+      txt += `\n  최고령 ${expShort(r.exp.oldest)} (${r.exp.oldQty}PLT)`;
+      if(r.exp.kinds.length>1) txt += ` ⚠ 날짜 ${r.exp.kinds.length}종 섞임`;
+    }
     if(nz(r.bpl)>0 && nz(r.layers)>0) txt += `\n  적재 ${r.bpl}박스×${r.layers}단=${r.bpl*r.layers}`;
   });
   txt += `\n\n(입력 ${rows.length}품목 / 전체 ${ITEMS.length}품목)`;
@@ -390,19 +517,21 @@ document.getElementById('xlsxBtn').onclick = ()=>{
   aoa.push(['청라로지스 실재고 실사결과']);
   aoa.push(['실사일자', dateStr, '실사자', who||'', '입력', entered+' / '+ITEMS.length+'품목']);
   aoa.push([]);
-  aoa.push(['업체','상품명','비고','1단박스수','적재단수','PLT적재수','실사PLT','낱BOX(정PLT)','4단','3단','2단','1단','낱BOX(선작업)','실재고','총PLT','잔량BOX']);
+  aoa.push(['업체','상품명','비고','1단박스수','적재단수','PLT적재수','실사PLT','낱BOX(정PLT)','4단','3단','2단','1단','낱BOX(선작업)','실재고','총PLT','잔량BOX','최고령 소비기한','최고령 PLT','날짜 종수','소비기한 내역']);
   rows.forEach(r=>{
-    const note = [r.unconf?'8/6미확인':'', (r.pltList&&r.pltList.length>1)?('PLT '+r.pltList.join('+')):''].filter(Boolean).join(' · ');
+    const note = [r.unconf?'창고미확인':'', (r.exp&&r.exp.kinds.length>1)?'날짜혼재':''].filter(Boolean).join(' · ');
     aoa.push([r.v, r.n, note,
       r.bpl!=null?r.bpl:'', r.layers!=null?r.layers:'', r.eff!=null?r.eff:'',
       r.sPLT!=null?r.sPLT:'', r.nb1!=null?r.nb1:'',
       r.d4!=null?r.d4:'', r.d3!=null?r.d3:'', r.d2!=null?r.d2:'', r.d1!=null?r.d1:'',
       r.staged?(r.nb2!=null?r.nb2:''):'',
-      r.total!=null?r.total:'', r.fullPLT!=null?r.fullPLT:'', r.rem!=null?r.rem:'']);
+      r.total!=null?r.total:'', r.fullPLT!=null?r.fullPLT:'', r.rem!=null?r.rem:'',
+      r.exp?r.exp.oldest:'', r.exp?r.exp.oldQty:'', r.exp?r.exp.kinds.length:'',
+      (r.pltList&&r.pltList.length)?r.pltList.join(' + '):'']);
   });
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols'] = [{wch:10},{wch:38},{wch:10},{wch:9},{wch:8},{wch:9},{wch:8},{wch:11},{wch:6},{wch:6},{wch:6},{wch:6},{wch:11},{wch:9},{wch:8},{wch:9}];
-  ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:15}}];
+  ws['!cols'] = [{wch:10},{wch:38},{wch:10},{wch:9},{wch:8},{wch:9},{wch:8},{wch:11},{wch:6},{wch:6},{wch:6},{wch:6},{wch:11},{wch:9},{wch:8},{wch:9},{wch:13},{wch:10},{wch:8},{wch:30}];
+  ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:19}}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '실사결과');
   const fname = '실사결과_'+(who?who+'_':'')+dateStr+'.xlsx';
