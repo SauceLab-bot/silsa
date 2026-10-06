@@ -1,7 +1,7 @@
 // 청라로지스 실사 — 오프라인 캐시 (창고에서 신호 약해도 실행됨)
-const CACHE = 'silsa-v1';
+const CACHE = 'silsa-v2';
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './index.html'])).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './index.html', './label.html', './label.webmanifest', './label-icon-192.png', './label-icon-512.png'])).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks =>

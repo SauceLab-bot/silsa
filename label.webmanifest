@@ -1,0 +1,26 @@
+{
+  "name": "청라로지스 파렛트 라벨",
+  "short_name": "라벨",
+  "id": "./label.html",
+  "start_url": "./label.html",
+  "scope": "./label.html",
+  "display": "standalone",
+  "background_color": "#f4f5f7",
+  "theme_color": "#059669",
+  "orientation": "portrait",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "label-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "label-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

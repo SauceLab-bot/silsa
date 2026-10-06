@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>청라로지스 파렛트 라벨</title>
+<link rel="manifest" href="label.webmanifest">
+<meta name="theme-color" content="#059669">
+<link rel="apple-touch-icon" href="label-icon-192.png">
+<link rel="icon" href="label-icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="라벨">
 <style>
 :root{
   --bg:#f4f5f7; --card:#fff; --line:#e3e5e8; --txt:#1f2328; --sub:#6b7280;
@@ -245,6 +253,10 @@ $('printBtn').onclick = ()=>{
 };
 
 renderQueue();
+
+if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
 </script>
 </body>
 </html>
