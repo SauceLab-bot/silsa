@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>재고 실사</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1c2230;--mute:#6b7384;--line:#e1e5ec;--accent:#2a5bd7;--accent-ink:#fff;--ok:#1f8f55;--warn:#c77a00;--bad:#d03a3a;--warn-bg:#fff3d9;--bad-bg:#fde6e6;--ok-bg:#e4f5ec;--soft:#eef2fb}
+@media (prefers-color-scheme:dark){:root{--bg:#12151c;--card:#1b2029;--ink:#e8ebf2;--mute:#9099ad;--line:#2b3240;--accent:#6c93ff;--accent-ink:#0c1020;--ok:#4fcf8b;--warn:#f0b34a;--bad:#ff7777;--warn-bg:#3a2f14;--bad-bg:#3b1d1f;--ok-bg:#16301f;--soft:#1f2740}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif}
+.wrap{max-width:720px;margin:0 auto;padding:0 16px 80px}
+header{padding:16px 0 8px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+h1{font-size:19px;margin:0}
+.sub{color:var(--mute);font-size:12.5px}
+.hl{display:flex;gap:8px;align-items:center}
+.hl a,.hl button{font-size:13px;color:var(--accent);background:none;border:1px solid var(--line);border-radius:99px;padding:5px 11px;text-decoration:none;font-weight:600;cursor:pointer}
+nav{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;gap:6px;padding:8px 0;border-bottom:1px solid var(--line)}
+nav button{flex:1;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 12px;border-radius:10px;font-size:14px;font-weight:600}
+nav button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tools{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+input,button{font:inherit}
+input[type=text],input[type=search],input[type=number]{font-size:16px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:9px 10px;min-width:0}
+.tools input{flex:1 1 160px}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 14px;border-radius:10px;font-weight:600;cursor:pointer}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.sm{padding:6px 10px;font-size:13px}
+.btn:disabled{opacity:.45}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0}
+.card.dirty{border-color:var(--warn)}
+.name{font-weight:700;word-break:keep-all;overflow-wrap:anywhere}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tot{font-weight:700;white-space:nowrap;text-align:right}
+.tot small{color:var(--mute);font-weight:500}
+.tot .pl{display:block;font-size:12px;color:var(--mute);font-weight:500}
+.meta{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12.5px;color:var(--mute);flex-wrap:wrap}
+.meta input{width:76px;padding:4px 8px;font-size:14px}
+.lbl{display:grid;grid-template-columns:1.2fr .8fr .8fr 34px;gap:6px;margin-top:10px;font-size:11.5px;color:var(--mute)}
+.in{display:grid;grid-template-columns:1.2fr .8fr .8fr 34px;gap:6px;margin-top:4px;align-items:center}
+.in .pv{grid-column:1/-1;font-size:12px;color:var(--mute);margin-top:-2px}
+.in .pv:empty{display:none}
+.in input{width:100%}
+.x{border:none;background:none;color:var(--mute);font-size:20px;padding:4px 0;cursor:pointer}
+.chip{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:99px;margin-left:4px;font-weight:600}
+.chip.bad{background:var(--bad-bg);color:var(--bad)}.chip.warn{background:var(--warn-bg);color:var(--warn)}.chip.ok{background:var(--ok-bg);color:var(--ok)}
+.acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.lot{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px dashed var(--line);font-size:14px}
+.dsum{margin-top:10px;padding:8px 10px;background:var(--soft);border-radius:8px}
+.dsum:empty{display:none}
+.hist .t{color:var(--mute);font-size:12px}
+.empty{color:var(--mute);font-size:13.5px;padding:10px 0}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:99px;font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:20;max-width:90vw;text-align:center}
+#toast.show{opacity:.96}
+.note{font-size:12.5px;color:var(--mute);margin:6px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><h1>재고 실사</h1><div class="sub" id="today"></div></div>
+    <div class="hl"><button id="reload">새로고침</button><a id="sheetLink" href="#" target="_blank" rel="noopener">재고표 열기</a></div>
+  </header>
+  <nav><button data-t="input" class="on">실사 입력</button><button data-t="hist">저장 내역</button></nav>
+  <div id="diag" style="margin:10px 16px;padding:8px 10px;border:1px dashed #999;border-radius:8px;font-size:12px;line-height:1.5;word-break:break-all">진단: 화면은 열렸지만 스크립트가 아직 시작되지 않았습니다.</div>
+  <main id="main"><div class="empty">불러오는 중…</div></main>
+</div>
+<div id="toast"></div>
+
+<script>
+window.__d=function(t){var e=document.getElementById('diag');if(e)e.innerHTML+='<br>'+t};
+window.onerror=function(m,u,l){window.__d('⚠ 스크립트 오류: '+m+' (줄 '+l+')')};
+window.addEventListener('unhandledrejection',function(ev){window.__d('⚠ 처리되지 않은 오류: '+(ev.reason&&ev.reason.message||ev.reason))});
+document.addEventListener('DOMContentLoaded',function(){window.__d('① 스크립트 실행됨 · google.script.run: '+(typeof google!=='undefined'&&google.script&&google.script.run?'있음':'없음'))});
+</script>
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function call(fn){const args=[].slice.call(arguments,1);
+  return new Promise((res,rej)=>{const r=google.script.run.withSuccessHandler(res).withFailureHandler(rej);r[fn].apply(r,args)})}
+const msg=e=>String((e&&e.message)||e||'').replace(/^Error:\s*/,'');
+let tab='input',q='',items=[],hist=[],todayStr='',loaded=false;
+let draft={};
+try{draft=JSON.parse(localStorage.getItem('shilsa_sheet_draft_v1')||'{}')}catch(e){}
+const saveDraft=()=>{try{localStorage.setItem('shilsa_sheet_draft_v1',JSON.stringify(draft))}catch(e){}};
+
+/* ---------- helpers ---------- */
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const todayD=()=>{const t=new Date();return new Date(t.getFullYear(),t.getMonth(),t.getDate())};
+function valid(y,m,d){const x=new Date(y,m-1,d);return x.getFullYear()===y&&x.getMonth()===m-1&&x.getDate()===d}
+function parseExp(s){
+  const t=String(s||'').replace(/\D/g,'');let y,m,d;
+  if(t.length===8){y=+t.slice(0,4);m=+t.slice(4,6);d=+t.slice(6,8)}
+  else if(t.length===6){y=2000+ +t.slice(0,2);m=+t.slice(2,4);d=+t.slice(4,6)}
+  else if(t.length===4){m=+t.slice(0,2);d=+t.slice(2,4);const T=todayD();y=T.getFullYear();
+    if(valid(y,m,d)&&new Date(y,m-1,d)<new Date(T.getTime()-60*864e5))y++}
+  else return null;
+  return valid(y,m,d)?y+'-'+pad(m)+'-'+pad(d):null;
+}
+const short=i=>i?String(i).slice(2).replace(/-/g,'.'):'(날짜 없음)';
+function dday(i){const [y,m,d]=i.split('-').map(Number);return Math.round((new Date(y,m-1,d)-todayD())/864e5)}
+function chip(i){if(!i)return '';const n=dday(i);
+  if(n<0)return '<span class="chip bad">만료 '+(-n)+'일</span>';
+  if(n===0)return '<span class="chip bad">오늘까지</span>';
+  if(n<=30)return '<span class="chip bad">D-'+n+'</span>';
+  if(n<=90)return '<span class="chip warn">D-'+n+'</span>';
+  return '<span class="chip ok">D-'+n+'</span>'}
+const fmt=n=>Number(n).toLocaleString('ko-KR');
+const sum=l=>(l||[]).reduce((a,x)=>a+(+x.n||0),0);
+const num=v=>{const n=Number(v);return v===''||v==null||!isFinite(n)?null:n};
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2600)}
+
+/* ---------- 계산: BOX = PLT × 박스/PLT + 낱BOX ---------- */
+function parsedRows(rows,perPlt){
+  const out=[],bad=[];
+  rows.forEach((r,ix)=>{
+    const any=[r.d,r.p,r.b].some(v=>String(v||'').trim()!=='');
+    if(!any)return;
+    const d=parseExp(r.d),p=num(r.p),b=num(r.b);
+    const pOk=r.p===''||r.p==null||(p!=null&&p>=0&&(perPlt>0||p===0));
+    const bOk=r.b===''||r.b==null||(b!=null&&b>=0);
+    if(!d||!pOk||!bOk||(p==null&&b==null)){bad.push(ix);return}
+    const n=(p||0)*(perPlt||0)+(b||0);
+    if(n>0)out.push({d,p:p||0,b:b||0,n});
+  });
+  const m={};
+  out.forEach(x=>{const t=m[x.d]||(m[x.d]={d:x.d,p:0,b:0,n:0});t.p+=x.p;t.b+=x.b;t.n+=x.n});
+  return {lots:Object.keys(m).sort().map(k=>m[k]),bad};
+}
+const norm=l=>JSON.stringify((l||[]).map(x=>[x.d,+x.n]));
+function baseRows(it){
+  const l=(it.lots||[]).map(x=>{const plt=it.plt||0;
+    return plt>0?{d:x.d,p:String(Math.floor(x.n/plt)),b:String(x.n%plt)}:{d:x.d,p:'',b:String(x.n)}});
+  while(l.length<Math.min(it.slots,1))l.push({d:'',p:'',b:''});
+  return l;
+}
+const rowsFor=it=>draft[it.name]||baseRows(it);
+function isDirty(it){
+  if(!draft[it.name])return false;
+  const p=parsedRows(draft[it.name],it.plt||0);
+  return p.bad.length>0||norm(p.lots)!==norm(it.lots);
+}
+
+/* ---------- 화면 ---------- */
+function rowPv(r,perPlt){
+  const pd=r.d?parseExp(r.d):null,p=num(r.p),b=num(r.b);let s='';
+  if(r.d)s+=pd?pd+chip(pd):'<span style="color:var(--bad)">날짜를 확인해 주세요</span>';
+  if(p!=null||b!=null){
+    if((p||0)>0&&!(perPlt>0))s+=(s?' · ':'')+'<span style="color:var(--bad)">박스/PLT를 먼저 적어 주세요</span>';
+    else{const n=(p||0)*perPlt+(b||0);
+      s+=(s?' · ':'')+'<b style="color:var(--ink);font-size:14px">= '+fmt(n)+' BOX</b> <span>('+(p||0)+'PLT × '+perPlt+' + '+(b||0)+')</span>'}
+  }
+  return s;
+}
+function sumHTML(rows,perPlt){
+  const p=parsedRows(rows,perPlt);
+  if(!p.lots.length)return '';
+  return '<div style="font-size:12px;color:var(--mute);margin-bottom:2px">유통기한별 합계</div>'+
+    p.lots.map(x=>'<div class="lot"><span>'+short(x.d)+chip(x.d)+'</span><b>'+fmt(x.n)+' BOX'+(perPlt>0?' <span style="color:var(--mute);font-weight:500;font-size:12.5px">('+Math.floor(x.n/perPlt)+'PLT + '+(x.n%perPlt)+')</span>':'')+'</b></div>').join('')+
+    '<div class="lot"><span><b>전체</b></span><b>'+fmt(sum(p.lots))+' BOX</b></div>';
+}
+const match=it=>!q||it.name.toLowerCase().includes(q.toLowerCase());
+
+function viewInput(){
+  let h='<div class="tools"><input type="search" id="q" placeholder="품목 검색" value="'+esc(q)+'"></div>';
+  h+='<div class="note">유통기한별로 <b>PLT(만재 파렛트)</b>와 <b>낱BOX</b>를 적으세요. BOX = PLT × 박스/PLT + 낱BOX 로 자동 계산됩니다. 유통기한은 <b>0312</b>, <b>261231</b>, <b>20261231</b> 모두 인식됩니다. 저장하면 <b>재고표 시트가 바로 바뀌고</b> 그 품목의 출고 기록은 비워집니다 (이전 내용은 시트의 \'이력\'에 남습니다).</div>';
+  h+=items.map((it,i)=>({it,i})).filter(o=>match(o.it)).map(({it,i})=>{
+    const rows=rowsFor(it),dirty=isDirty(it),perPlt=it.plt||0;
+    const p=parsedRows(rows,perPlt),tot=sum(p.lots);
+    const full=rows.length>=it.slots;
+    return '<div class="card'+(dirty?' dirty':'')+'" data-i="'+i+'"><div class="row"><div class="name">'+esc(it.name)+'</div><div class="tot"><span data-tot>'+fmt(tot)+'</span> <small>BOX</small><span class="pl" data-pl>'+(perPlt>0?Math.floor(tot/perPlt)+'PLT + '+(tot%perPlt):'')+'</span></div></div>'+
+    '<div class="meta">박스/PLT <input type="number" inputmode="numeric" min="0" data-plt value="'+(perPlt||'')+'" placeholder="미확인">'+(perPlt>0?'':'<span style="color:var(--bad)">PLT당 박스 수를 먼저 적으면 PLT 계산이 됩니다</span>')+(it.last?'<span>· 최근 실사 '+esc(it.last)+'</span>':'')+'</div>'+
+    '<div class="lbl"><span>유통기한</span><span>PLT</span><span>낱BOX</span><span></span></div>'+
+    rows.map((r,ix)=>'<div class="in"><input type="text" inputmode="numeric" placeholder="1120" data-f="d" data-ix="'+ix+'" value="'+esc(r.d)+'"><input type="number" inputmode="numeric" min="0" placeholder="0" data-f="p" data-ix="'+ix+'" value="'+esc(r.p)+'"><input type="number" inputmode="numeric" min="0" placeholder="0" data-f="b" data-ix="'+ix+'" value="'+esc(r.b)+'"><button class="x" data-del="'+ix+'" aria-label="줄 삭제">×</button><div class="pv" data-pv>'+rowPv(r,perPlt)+'</div></div>').join('')+
+    '<div class="dsum" data-sum>'+sumHTML(rows,perPlt)+'</div>'+
+    '<div class="acts"><button class="btn sm" data-add '+(full?'disabled':'')+'>+ 유통기한 줄 추가</button><button class="btn sm pri" data-save '+(dirty?'':'disabled')+'>저장</button>'+(dirty?'<button class="btn sm" data-reset>되돌리기</button>':'')+(full?'<span class="note" style="align-self:center">시트에 이 품목 줄이 '+it.slots+'개라서 더 못 늘려요</span>':'')+'</div></div>';
+  }).join('')||'<div class="empty">검색 결과가 없습니다.</div>';
+  return h;
+}
+function viewHist(){
+  if(!hist.length)return '<div class="empty">아직 저장된 내역이 없습니다.</div>';
+  return hist.map(g=>{
+    const before=g.before.reduce((a,x)=>a+x.bal,0),after=g.after.reduce((a,x)=>a+x.bal,0);
+    return '<div class="card hist"><div class="row"><div class="name">'+esc(g.name)+'</div><div class="tot">'+fmt(after)+' <small>BOX</small></div></div>'+
+      '<div class="t">'+esc(g.ts)+' 저장 · 이전 '+fmt(before)+' BOX</div>'+
+      (g.after.filter(x=>x.d).length?g.after.filter(x=>x.d).map(x=>'<div class="lot"><span>'+short(x.d)+(x.p!==''?' · '+x.p+'PLT + '+(x.b||0):'')+'</span><b>'+fmt(x.q)+'</b></div>').join(''):'<div class="empty">재고 없음으로 저장</div>')+'</div>';
+  }).join('');
+}
+function render(){
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
+  const m=$('#main');
+  if(!loaded){m.innerHTML='<div class="empty">불러오는 중…</div>';return}
+  m.innerHTML=tab==='hist'?viewHist():viewInput();
+}
+
+/* ---------- 이벤트 ---------- */
+function refreshCard(card){
+  const it=items[+card.dataset.i],perPlt=it.plt||0,rows=rowsFor(it);
+  const p=parsedRows(rows,perPlt),dirty=isDirty(it),tot=sum(p.lots);
+  card.querySelector('[data-tot]').textContent=fmt(tot);
+  card.querySelector('[data-pl]').textContent=perPlt>0?Math.floor(tot/perPlt)+'PLT + '+(tot%perPlt):'';
+  card.classList.toggle('dirty',dirty);
+  card.querySelector('[data-save]').disabled=!dirty;
+  card.querySelector('[data-sum]').innerHTML=sumHTML(rows,perPlt);
+  card.querySelectorAll('[data-pv]').forEach((el,ix)=>{if(rows[ix])el.innerHTML=rowPv(rows[ix],perPlt)});
+}
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('button');if(!t)return;
+  if(t.dataset.t){tab=t.dataset.t;if(tab==='hist')loadHist();render();window.scrollTo(0,0);return}
+  if(t.id==='reload'){await load(true);return}
+  const card=t.closest('.card[data-i]');if(!card)return;
+  const it=items[+card.dataset.i];
+  if(t.dataset.add!==undefined){draft[it.name]=rowsFor(it).concat([{d:'',p:'',b:''}]);saveDraft();render()}
+  else if(t.dataset.del!==undefined){const r=rowsFor(it).slice();r.splice(+t.dataset.del,1);draft[it.name]=r;saveDraft();render()}
+  else if(t.dataset.reset!==undefined){delete draft[it.name];saveDraft();render()}
+  else if(t.dataset.save!==undefined){save(it,t)}
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='q'){q=t.value;const pos=t.selectionStart;render();const n=$('#q');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(x){}}return}
+  const card=t.closest&&t.closest('.card[data-i]');if(!card||!t.dataset.f)return;
+  const it=items[+card.dataset.i];
+  const rows=rowsFor(it).map(r=>({...r}));
+  rows[+t.dataset.ix][t.dataset.f]=t.value;
+  draft[it.name]=rows;saveDraft();
+  refreshCard(card);
+});
+document.addEventListener('change',async e=>{
+  const t=e.target;if(!t.matches||!t.matches('[data-plt]'))return;
+  const card=t.closest('.card[data-i]'),it=items[+card.dataset.i];
+  try{const v=await call('setPlt',it.name,t.value);it.plt=v;toast('박스/PLT를 '+v+'로 저장했어요');refreshCard(card)}
+  catch(x){toast('저장하지 못했어요: '+msg(x))}
+});
+
+/* ---------- 서버 호출 ---------- */
+async function save(it,btn){
+  const p=parsedRows(rowsFor(it),it.plt||0);
+  if(p.bad.length){toast('유통기한과 수량을 확인해 주세요');return}
+  btn.disabled=true;btn.textContent='저장 중…';
+  try{
+    await call('saveItem',{name:it.name,lots:p.lots});
+    delete draft[it.name];saveDraft();
+    await load(false);
+    toast('저장했어요. 재고표 시트에 반영됐습니다');
+  }catch(e){toast(msg(e)||'저장하지 못했어요');render()}
+}
+async function loadHist(){try{hist=await call('getHistory');if(tab==='hist')render()}catch(e){}}
+function withTimeout(p,ms,label){return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error(label+' 응답이 '+ms/1000+'초 넘게 없습니다')),ms))])}
+async function load(showToast){
+  try{
+    window.__d('② 서버에 연결 확인 중…');
+    const pong=await withTimeout(call('ping'),15000,'ping');
+    window.__d('③ 서버 응답: '+pong+' · 재고표 읽는 중…');
+    const raw=await withTimeout(call('getInitJson'),30000,'getInitJson');
+    const d=JSON.parse(raw);
+    items=d.items;todayStr=d.today;loaded=true;
+    window.__d('④ 품목 '+items.length+'개 불러옴');
+    var dg=document.getElementById('diag');if(dg)setTimeout(function(){dg.style.display='none'},1500);
+    $('#today').textContent='기준일 '+todayStr+' · 단위 BOX';
+    $('#sheetLink').href=d.url;
+    render();if(showToast)toast('새로고침했어요');
+  }catch(e){
+    window.__d('✖ '+msg(e));
+    $('#main').innerHTML='<div class="card"><div class="name">불러오지 못했어요</div><div class="note">'+esc(msg(e))+'</div></div>'}
+}
+load(false);
+})();
+</script>
+</body>
+</html>
