@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>대선 피킹지</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#16181d;--sub:#5d6470;--line:#d9dde3;--warn:#b42318;--warnbg:#fff1ee}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-size:16px}
+header{position:sticky;top:0;z-index:5;background:#16181d;color:#fff;padding:10px 16px}
+header h1{font-size:17px;margin:0 0 2px}
+header .sum{font-size:13px;opacity:.85}
+main{padding:12px 16px 80px;max-width:760px;margin:0 auto}
+.pick{display:block;border:2px dashed #9aa3af;border-radius:12px;padding:28px 16px;text-align:center;background:#fff;font-weight:600}
+.pick input{display:none}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 0 10px}
+.chip{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600}
+.chip.on{background:#16181d;color:#fff;border-color:#16181d}
+#q{width:100%;padding:12px 14px;font-size:16px;border:1px solid var(--line);border-radius:10px;margin-bottom:10px}
+.tools{display:flex;gap:8px;margin-bottom:12px}
+.tools button{flex:1;padding:10px;border:1px solid var(--line);background:#fff;border-radius:10px;font-size:14px;font-weight:600}
+.c{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden;break-inside:avoid}
+.c.done{opacity:.55}
+.ch{display:flex;align-items:stretch;cursor:pointer}
+.band{width:64px;flex:none;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;text-align:center;padding:4px;line-height:1.2}
+.nm{flex:1;padding:10px 12px;min-width:0}
+.nm b{font-size:26px;line-height:1.15;display:block;word-break:keep-all}
+.nm span{font-size:13px;color:var(--sub)}
+.bx{flex:none;padding:10px 12px;text-align:right;font-weight:800;font-size:22px}
+.bx small{display:block;font-size:12px;color:var(--sub);font-weight:500}
+.w{background:var(--warnbg);color:var(--warn);font-size:14px;font-weight:700;padding:7px 12px;border-top:1px solid #f5c6bd}
+.items{display:none;border-top:1px solid var(--line)}
+.c.open .items{display:block}
+.it{display:flex;gap:10px;align-items:center;padding:11px 12px;border-bottom:1px solid #eef0f3}
+.it input{width:24px;height:24px;flex:none}
+.it .n{flex:1;font-size:16px;min-width:0}
+.it .n small{display:block;color:var(--sub);font-size:12px}
+.it .b{font-weight:800;font-size:20px;flex:none}
+.it.ok .n{text-decoration:line-through;color:var(--sub)}
+.big{display:block;width:calc(100% - 24px);margin:10px 12px;padding:12px;border:0;border-radius:10px;background:#16181d;color:#fff;font-size:15px;font-weight:700}
+#sign{position:fixed;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:16px}
+#sign.on{display:flex}
+#sign .s1{font-size:11vw;font-weight:800}
+#sign .s2{font-size:26vw;font-weight:900;line-height:1.05;word-break:keep-all}
+#sign .s3{font-size:6vw;margin-top:3vh;font-weight:700}
+#sign .s4{font-size:4.5vw;margin-top:2vh;background:#fff;color:#b42318;border-radius:10px;padding:8px 14px;font-weight:800}
+.ph{display:none}
+@media print{
+ header,.chips,#q,.tools,.pick,.big,#sign{display:none!important}
+ body{background:#fff;font-size:12pt} main{padding:0;max-width:none}
+ .c{border:2px solid #000;border-radius:0;margin:0 0 6mm;opacity:1!important}
+ body.each .c{break-after:page}
+ .items{display:block!important}
+ .band{-webkit-print-color-adjust:exact;print-color-adjust:exact;width:22mm;font-size:12pt}
+ .nm b{font-size:30pt} .bx{font-size:20pt}
+ .w{-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:11pt}
+ .it{padding:2mm 3mm} .it input{width:5mm;height:5mm}
+ .ph{display:block;font-size:11pt;margin-bottom:4mm}
+}
+</style>
+</head>
+<body>
+<header><h1>대선 피킹지</h1><div class="sum" id="sum">피킹 파일을 열어 주세요</div></header>
+<main>
+<label class="pick" id="pick">피킹 엑셀 파일 열기<input type="file" id="f" accept=".xlsx,.xls"></label>
+<div id="app" hidden>
+ <div class="ph" id="ph"></div>
+ <div class="chips" id="chips"></div>
+ <input id="q" placeholder="센터 이름 찾기">
+ <div class="tools"><button id="p1">피킹지 인쇄(이어서)</button><button id="p2">피킹지 인쇄(센터마다 새 장)</button><button id="re">다른 파일</button></div>
+ <div id="list"></div>
+</div>
+</main>
+<div id="sign"><div class="s1"></div><div class="s2"></div><div class="s3"></div><div class="s4"></div></div>
+<script>
+const COLOR={'GS':'#0b5cad','BGF리테일':'#6a2c91','코리아세븐':'#1b7f3b','이마트24':'#b26a00'};
+const SHORT={'GS':'GS','BGF리테일':'BGF\n(CU)','코리아세븐':'세븐','이마트24':'이마트\n24'};
+let G=[],date='',filt='',key='';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function base(n){return String(n).replace(/★/g,'').replace(/\(.*?\)/g,'').replace(/_\d+$/,'').replace(/[0-9]+$/,'').replace(/[A-Z]$/,'').trim()}
+function plain(n){return String(n).replace(/★/g,'').trim()}
+function near(a,b){a=base(a);b=base(b);if(a===b||a.length!==b.length||a.length<2)return false;let d=0;for(let i=0;i<a.length;i++)if(a[i]!==b[i])d++;return d===1&&a[a.length-1]===b[b.length-1]}
+function load(rows){
+  let hi=rows.findIndex(r=>r&&r.includes('납품센터'));if(hi<0){alert('납품센터 칸이 없는 파일입니다');return}
+  const h=rows[hi],ix=n=>h.indexOf(n),iV=ix('납품처'),iC=ix('납품센터'),iB=ix('바코드'),iN=ix('상품명'),iD=ix('출고일자'),iE=ix('유통기한'),iM=ix('미출(B)'),iQ=ix('출고(B)'),iO=ix('발주(B)');
+  const m=new Map();date='';
+  for(const r of rows.slice(hi+1)){ if(!r||!r[iC])continue;
+    const k=r[iV]+'|'+r[iC]; if(!m.has(k))m.set(k,{v:String(r[iV]),c:String(r[iC]),items:[]});
+    if(!date&&r[iD])date=String(r[iD]).slice(0,10);
+    m.get(k).items.push({b:String(r[iB]??''),n:String(r[iN]??''),e:r[iE]?String(r[iE]).slice(0,10):'',q:Number(r[iQ]??r[iO])||0,miss:Number(r[iM])||0});
+  }
+  G=[...m.values()];
+  for(const g of G){ g.tot=g.items.reduce((s,i)=>s+i.q,0);
+    g.same=G.filter(o=>o!==g&&base(o.c)===base(g.c));
+    g.near=G.filter(o=>o!==g&&o.v===g.v&&near(o.c,g.c)); }
+  key='pick:'+date; $('#pick').hidden=true; $('#app').hidden=false; filt=''; draw();
+}
+function st(){try{return JSON.parse(localStorage.getItem(key)||'{}')}catch(e){return{}}}
+function sv(o){try{localStorage.setItem(key,JSON.stringify(o))}catch(e){}}
+function draw(){
+  const vs=[...new Set(G.map(g=>g.v))],tot=G.reduce((s,g)=>s+g.tot,0),s=st();
+  $('#sum').textContent=`출고 ${date} · ${G.length}센터 · ${tot.toLocaleString()}박스`;
+  $('#ph').textContent=`대선 피킹지 · 출고 ${date} · ${G.length}센터 · ${tot.toLocaleString()}박스`;
+  $('#chips').innerHTML=[['','전체',tot,G.length]].concat(vs.map(v=>[v,v,G.filter(g=>g.v===v).reduce((a,g)=>a+g.tot,0),G.filter(g=>g.v===v).length]))
+    .map(([v,t,n,c])=>`<button class="chip${filt===v?' on':''}" data-v="${esc(v)}">${esc(t)} ${n.toLocaleString()}박스 · ${c}곳</button>`).join('');
+  const q=$('#q').value.trim();
+  $('#list').innerHTML=G.map((g,i)=>{ if(filt&&g.v!==filt)return''; if(q&&!g.c.includes(q))return'';
+    const done=g.items.every(it=>s[g.v+'|'+g.c+'|'+it.b]);
+    const w=[]; if(g.same.length)w.push('같은 이름 주의: '+g.same.map(o=>o.v+' '+plain(o.c)).join(' · '));
+    if(g.near.length)w.push('글자 비슷: '+g.near.map(o=>plain(o.c)).join(' · '));
+    return `<div class="c${done?' done':''}" data-i="${i}"><div class="ch"><div class="band" style="background:${COLOR[g.v]||'#444'}">${esc(SHORT[g.v]||g.v).replace('\n','<br>')}</div>
+     <div class="nm"><b>${esc(plain(g.c))}</b><span>${esc(g.v)} · ${g.items.length}품목${g.c.includes('★')?' · ★':''}</span></div>
+     <div class="bx">${g.tot}<small>박스</small></div></div>
+     ${w.map(x=>`<div class="w">⚠ ${esc(x)}</div>`).join('')}
+     <div class="items">${g.items.map(it=>{const k=g.v+'|'+g.c+'|'+it.b;return `<label class="it${s[k]?' ok':''}"><input type="checkbox" data-k="${esc(k)}"${s[k]?' checked':''}><span class="n">${esc(it.n)}<small>${esc(it.b)}${it.e?' · '+esc(it.e):''}${it.miss?' · 미출 '+it.miss:''}</small></span><span class="b">${it.q}</span></label>`}).join('')}
+     <button class="big" data-sign="${i}">센터명 크게 보기 (상자에 적을 때)</button></div></div>`}).join('');
+}
+$('#f').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=x=>{const wb=XLSX.read(x.target.result,{type:'array',cellDates:false});load(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:null}))};rd.readAsArrayBuffer(f)};
+$('#chips').onclick=e=>{const b=e.target.closest('.chip');if(b){filt=b.dataset.v;draw()}};
+$('#q').oninput=draw;
+$('#list').onclick=e=>{const sg=e.target.closest('[data-sign]');if(sg){show(G[+sg.dataset.sign]);return}
+  if(e.target.closest('.items'))return; const c=e.target.closest('.c');if(c)c.classList.toggle('open')};
+$('#list').onchange=e=>{const k=e.target.dataset.k;if(!k)return;const s=st();if(e.target.checked)s[k]=1;else delete s[k];sv(s);
+  e.target.closest('.it').classList.toggle('ok',e.target.checked);
+  const c=e.target.closest('.c');c.classList.toggle('done',[...c.querySelectorAll('input')].every(i=>i.checked))};
+function show(g){const el=$('#sign');el.style.background=COLOR[g.v]||'#222';el.querySelector('.s1').textContent=g.v;el.querySelector('.s2').textContent=plain(g.c);
+  el.querySelector('.s3').textContent=`${g.items.length}품목 · ${g.tot}박스`;
+  const o=g.same.map(x=>x.v+' '+plain(x.c)).concat(g.near.map(x=>plain(x.c)));const s4=el.querySelector('.s4');s4.textContent=o.length?'헷갈리지 말 것: '+o.join(' · '):'';s4.style.display=o.length?'':'none';el.classList.add('on')}
+$('#sign').onclick=()=>$('#sign').classList.remove('on');
+$('#p1').onclick=()=>{document.body.classList.remove('each');print()};
+$('#p2').onclick=()=>{document.body.classList.add('each');print()};
+$('#re').onclick=()=>{$('#app').hidden=true;$('#pick').hidden=false;$('#f').value=''};
+</script>
+</body>
+</html>
